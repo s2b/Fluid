@@ -94,7 +94,7 @@ trait CompileWithContentArgumentAndRenderStatic
         TemplateCompiler $compiler
     ) {
         $execution = sprintf(
-            '$renderingContext->getViewHelperInvoker()->invoke(%s::class, %s, $renderingContext, %s)',
+            '$renderingContext->getViewHelperInvoker()->invoke(%s::class, %s, $renderingContext, %s, true)',
             static::class,
             $argumentsName,
             $closureName

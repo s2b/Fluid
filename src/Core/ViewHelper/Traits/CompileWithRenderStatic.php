@@ -58,7 +58,7 @@ trait CompileWithRenderStatic
         TemplateCompiler $compiler
     ) {
         return sprintf(
-            '$renderingContext->getViewHelperInvoker()->invoke(%s::class, %s, $renderingContext, %s)',
+            '$renderingContext->getViewHelperInvoker()->invoke(%s::class, %s, $renderingContext, %s, true)',
             static::class,
             $argumentsName,
             $closureName

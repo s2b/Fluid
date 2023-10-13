@@ -38,9 +38,14 @@ class ViewHelperInvoker
      * @param array<string, mixed> $arguments
      * @param RenderingContextInterface $renderingContext
      * @param \Closure|null $renderChildrenClosure
+     * @param bool $trustArguments  If set to true, merging with default values
+     *                              and checking for undeclared arguments won't
+     *                              be performed. This increases performance when
+     *                              the ViewHelper is invoked from a cached template
+     *                              where these checks have already been performed
      * @return string
      */
-    public function invoke($viewHelperClassNameOrInstance, array $arguments, RenderingContextInterface $renderingContext, \Closure $renderChildrenClosure = null)
+    public function invoke($viewHelperClassNameOrInstance, array $arguments, RenderingContextInterface $renderingContext, \Closure $renderChildrenClosure = null, bool $trustArguments = false)
     {
         $viewHelperResolver = $renderingContext->getViewHelperResolver();
         if ($viewHelperClassNameOrInstance instanceof ViewHelperInterface) {
@@ -48,34 +53,41 @@ class ViewHelperInvoker
         } else {
             $viewHelper = $viewHelperResolver->createViewHelperInstanceFromClassName($viewHelperClassNameOrInstance);
         }
-        $expectedViewHelperArguments = $viewHelperResolver->getArgumentDefinitionsForViewHelper($viewHelper);
 
         // Rendering process
-        $evaluatedArguments = [];
-        $undeclaredArguments = [];
-
         try {
-            foreach ($expectedViewHelperArguments as $argumentName => $argumentDefinition) {
-                if (isset($arguments[$argumentName])) {
-                    /** @var NodeInterface|mixed $argumentValue */
-                    $argumentValue = $arguments[$argumentName];
-                    $evaluatedArguments[$argumentName] = $argumentValue instanceof NodeInterface ? $argumentValue->evaluate($renderingContext) : $argumentValue;
-                } else {
-                    $evaluatedArguments[$argumentName] = $argumentDefinition->getDefaultValue();
-                }
-            }
-            foreach ($arguments as $argumentName => $argumentValue) {
-                if (!array_key_exists($argumentName, $evaluatedArguments)) {
-                    $undeclaredArguments[$argumentName] = $argumentValue instanceof NodeInterface ? $argumentValue->evaluate($renderingContext) : $argumentValue;
-                }
-            }
-
             if ($renderChildrenClosure) {
                 $viewHelper->setRenderChildrenClosure($renderChildrenClosure);
             }
             $viewHelper->setRenderingContext($renderingContext);
-            $viewHelper->setArguments($evaluatedArguments);
-            $viewHelper->handleAdditionalArguments($undeclaredArguments);
+
+            if ($trustArguments) {
+                $viewHelper->setArguments($arguments);
+            } else {
+                $expectedViewHelperArguments = $viewHelperResolver->getArgumentDefinitionsForViewHelper($viewHelper);
+
+                $evaluatedArguments = [];
+                foreach ($expectedViewHelperArguments as $argumentName => $argumentDefinition) {
+                    if (isset($arguments[$argumentName])) {
+                        /** @var NodeInterface|mixed $argumentValue */
+                        $argumentValue = $arguments[$argumentName];
+                        $evaluatedArguments[$argumentName] = $argumentValue instanceof NodeInterface ? $argumentValue->evaluate($renderingContext) : $argumentValue;
+                    } else {
+                        $evaluatedArguments[$argumentName] = $argumentDefinition->getDefaultValue();
+                    }
+                }
+
+                $undeclaredArguments = [];
+                foreach ($arguments as $argumentName => $argumentValue) {
+                    if (!array_key_exists($argumentName, $evaluatedArguments)) {
+                        $undeclaredArguments[$argumentName] = $argumentValue instanceof NodeInterface ? $argumentValue->evaluate($renderingContext) : $argumentValue;
+                    }
+                }
+
+                $viewHelper->setArguments($evaluatedArguments);
+                $viewHelper->handleAdditionalArguments($undeclaredArguments);
+            }
+
             return $viewHelper->initializeArgumentsAndRender();
         } catch (Exception $error) {
             return $renderingContext->getErrorHandler()->handleViewHelperError($error);
