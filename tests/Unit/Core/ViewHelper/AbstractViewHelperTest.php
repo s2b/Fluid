@@ -182,7 +182,7 @@ class AbstractViewHelperTest extends UnitTestCase
         $subject = $this->getMockBuilder(AbstractViewHelper::class)->onlyMethods([])->getMock();
         $result = $subject->compile('foobar', 'baz', $init, $node, new TemplateCompiler());
         self::assertEmpty($init);
-        self::assertEquals(get_class($subject) . '::renderStatic(foobar, baz, $renderingContext)', $result);
+        self::assertEquals('$renderingContext->getViewHelperInvoker()->invoke(' . get_class($subject) . '::class, foobar, $renderingContext, baz, true)', $result);
     }
 
     /**
@@ -191,7 +191,7 @@ class AbstractViewHelperTest extends UnitTestCase
     public function testCallRenderMethodCanRenderViewHelperWithoutRenderMethodAndCallsRenderStatic(): void
     {
         $subject = new RenderMethodFreeViewHelper();
-        $method = new \ReflectionMethod($subject, 'callRenderMethod');
+        $method = new \ReflectionMethod($subject, 'render');
         $subject->setRenderingContext(new RenderingContext());
         $result = $method->invoke($subject);
         self::assertSame('I was rendered', $result);
@@ -204,7 +204,7 @@ class AbstractViewHelperTest extends UnitTestCase
     {
         $this->expectException(Exception::class);
         $subject = new RenderMethodFreeDefaultRenderStaticViewHelper();
-        $method = new \ReflectionMethod($subject, 'callRenderMethod');
+        $method = new \ReflectionMethod($subject, 'render');
         $subject->setRenderingContext(new RenderingContext());
         $method->invoke($subject);
     }

@@ -16,6 +16,8 @@ use TYPO3Fluid\Fluid\Core\Parser\SyntaxTree\ViewHelperNode;
  * Provides default methods for rendering and compiling
  * any ViewHelper that conforms to the `renderStatic`
  * method pattern.
+ *
+ * @deprecated
  */
 trait CompileWithRenderStatic
 {
